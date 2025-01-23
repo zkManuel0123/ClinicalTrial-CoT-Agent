@@ -173,26 +173,26 @@ def create_workflow() -> Graph:
     return workflow.compile()
 
 def main():
-    # 记录开始时间
+    # Record start time
     start_time = time.time()
     start_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"开始处理时间: {start_datetime}")
+    print(f"Processing Start Time: {start_datetime}")
 
-    # 读取测试文件
+    # Read test file
     test_file = r"D:\Master_Thesis\Task-2-SemEval-2024-main\test.json"
     test_data = read_json_file(test_file)
     total_samples = len(test_data)
     
-    # 创建工作流
+    # Create workflow
     workflow = create_workflow()
     results = {}
     
-    # 处理所有样本
+    # Process all samples
     for idx, (sample_id, sample_data) in enumerate(test_data.items(), 1):
         sample_start_time = time.time()
         print(f"\nProcessing sample {idx}/{total_samples}: {sample_id}")
         
-        # 初始化状态
+        # Initialize state
         state = {
             "sample_id": sample_id,
             "sample_data": sample_data,
@@ -201,7 +201,7 @@ def main():
             "final_prediction": None
         }
         
-        # 运行工作流
+        # Run workflow
         final_state = workflow.invoke(state)
         results[sample_id] = {
             "Prediction": final_state["final_prediction"],
@@ -209,34 +209,34 @@ def main():
             "Verification": final_state["final_verification"]
         }
         
-        # 计算并显示每个样本的处理时间
+        # Calculate and display processing time for each sample
         sample_time = time.time() - sample_start_time
-        print(f"预测结果: {final_state['final_prediction']}")
-        print(f"样本处理时间: {sample_time:.2f} 秒")
+        print(f"Prediction Result: {final_state['final_prediction']}")
+        print(f"Sample Processing Time: {sample_time:.2f} seconds")
         
-        # 实时保存结果
+        # Save results in real-time
         with open('predictions_test_all.json', 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=4, ensure_ascii=False)
             
-        # 显示完成进度
+        # Display progress
         if idx % 10 == 0:
-            print(f"\n已完成: {idx}/{total_samples} 样本")
+            print(f"\nCompleted: {idx}/{total_samples} samples")
             current_time = time.time()
             elapsed_time = current_time - start_time
             avg_time_per_sample = elapsed_time / idx
             estimated_remaining_time = avg_time_per_sample * (total_samples - idx)
-            print(f"预计剩余时间: {estimated_remaining_time/60:.2f} 分钟")
+            print(f"Estimated Time Remaining: {estimated_remaining_time/60:.2f} minutes")
     
-    # 计算总运行时间
+    # Calculate total runtime
     total_time = time.time() - start_time
     end_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    print(f"\n处理完成!")
-    print(f"开始时间: {start_datetime}")
-    print(f"结束时间: {end_datetime}")
-    print(f"总运行时间: {total_time:.2f} 秒 ({total_time/60:.2f} 分钟)")
-    print(f"平均每个样本处理时间: {total_time/total_samples:.2f} 秒")
-    print(f"结果已保存到 predictions_test_all.json")
+    print(f"\nProcessing Complete!")
+    print(f"Start Time: {start_datetime}")
+    print(f"End Time: {end_datetime}")
+    print(f"Total Runtime: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
+    print(f"Average Processing Time per Sample: {total_time/total_samples:.2f} seconds")
+    print(f"Results saved to predictions_test_all.json")
 
 if __name__ == "__main__":
     main()
