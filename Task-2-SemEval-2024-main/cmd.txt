@@ -1,0 +1,4 @@
+
+cd "D:\Master_Thesis\Task-2-SemEval-2024-main"
+
+python evaluate.py D:\Master_Thesis\Task-2-SemEval-2024-main D:\Master_Thesis\output
