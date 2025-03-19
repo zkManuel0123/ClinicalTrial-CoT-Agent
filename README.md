@@ -1,5 +1,5 @@
-# Master Thesis Project
-This repository contains code and resources for the master's thesis project on AI-assisted evaluation of clinical trial analysis.
+# Inspecting Clinical Trial Inference through Chain-of-Thought and Dual-Agent reasoning with Large Language Models
+
 
 ## Comments and Guidance:
 (23.01.2025 updates)
