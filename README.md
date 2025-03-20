@@ -11,7 +11,9 @@ The dataset and parts of the code are referenced and cloned from the [SemEval 20
 
 ## Usage
 1. Clone this repository
+  
 2. Configure .env file with your required API keys
+  
 3. Run the appropriate model code
 
 ## Acknowledgements
