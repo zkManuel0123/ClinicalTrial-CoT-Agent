@@ -6,7 +6,9 @@ The dataset and parts of the code are referenced and cloned from the [SemEval 20
 
 ## Repository Structure
 **Main directory:** Contains the running code for various models used in this experiment
+
 **.env** file: Stores API keys for the models used
+
 **output folder**: Contains experimental results
 
 ## Usage
