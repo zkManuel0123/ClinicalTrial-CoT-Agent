@@ -5,14 +5,16 @@ from dotenv import load_dotenv
 from pathlib import Path
 import time
 from datetime import datetime
+import re
+from huggingface_hub import InferenceClient
+from groq import Groq
 
 # 加载环境变量
 load_dotenv()
 
-# 初始化OpenAI客户端
-client = OpenAI(
-    api_key=os.getenv("DASHSCOPE_API_KEY"),
-    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+# 初始化Groq客户端
+client = Groq(
+    api_key=os.getenv("groq_api_key"),  # 确保在.env文件中添加GROQ_API_KEY
 )
 
 def read_json_file(file_path):
@@ -75,25 +77,47 @@ def create_prompt(sample_id, sample_data):
     task_prompt += "   - What specific evidence supports or contradicts the statement?\n"
     task_prompt += "   - Are there any important details or conditions mentioned in the CTR that affect our conclusion?\n"
     task_prompt += "4. Based on this analysis, we can conclude:\n"
-    task_prompt += "\nFinal Answer: [Your reasoning should lead to either 'Entailment' or 'Contradiction']\nDo not include any other text."
-
+    # task_prompt += "\nFinal Answer: [Your reasoning should lead to either 'Entailment' or 'Contradiction']\nDo not include any other text."
+    task_prompt += "\nFinal Answer: [IMPORTANT: In the Final Answer, your response MUST end with 'Final Answer: ' followed by ONLY 'Entailment' or 'Contradiction'.]"
     return task_prompt
 
 def get_model_prediction(prompt):
     try:
+        messages = [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+        
         response = client.chat.completions.create(
-            model="qwen-turbo",  # 使用适当的模型
-            messages=[{"role": "user", "content": prompt}],
+            model="deepseek-r1-distill-llama-70b",
+            messages=messages,
             temperature=0
         )
         prediction = response.choices[0].message.content.strip()
-        # 确保结果是 Entailment 或 Contradiction
-        if prediction not in ["Entailment", "Contradiction"]:
-            return "NAN"  # 默认返回
-        return prediction
+        
+        # 打印原始输出
+        print("\n=== deepseek-r1-distill-llama-70b 原始输出 ===")
+        print(prediction)
+        print("=====================\n")
+        
+        # 新的提取逻辑
+        last_line = prediction.strip().split('\n')[-1]
+        words = re.findall(r'\b\w+\b', last_line)
+        
+        if words and words[-1] in ["Entailment", "Contradiction"]:
+            return prediction, words[-1]  # 返回原始输出和提取的结果
+        
+        for word in reversed(words):
+            if word in ["Entailment", "Contradiction"]:
+                return prediction, word
+        
+        return prediction, "NAN"
+        
     except Exception as e:
         print(f"API error: {e}")
-        return "Contradiction"  # 出错时默认返回
+        return "API Error", "Contradiction"
 
 def main():
     # 记录开始时间
@@ -108,25 +132,33 @@ def main():
     # 存储结果
     results = {}
     
+    # 将字典转换为列表以便按索引访问
+    samples_list = list(test_data.items())
+    
     # 处理所有样本
-    total_samples = len(test_data)
-    for i, (sample_id, sample_data) in enumerate(test_data.items()):
-     
+    for i in range(len(samples_list)):
+        sample_id, sample_data = samples_list[i]
         sample_start_time = time.time()
         
-        print(f"Processing sample {i+1}/{total_samples}: {sample_id}")
+        print(f"Processing sample {i + 1}: {sample_id}")
         prompt = create_prompt(sample_id, sample_data)
-        prediction = get_model_prediction(prompt)
-        results[sample_id] = {"Prediction": prediction}
+        raw_output, prediction = get_model_prediction(prompt)  # 接收两个返回值
+        results[sample_id] = {
+            "Prediction": prediction,
+            "Model_Output": raw_output  # 保存原始输出
+        }
         
-        # 计算并显示每个样本的处理时间
+        # 计算并显示样本的处理时间
         sample_time = time.time() - sample_start_time
         print(f"Sample processing time: {sample_time:.2f} seconds")
         
-        # 实时保存结果
-        with open('predictions.json', 'w', encoding='utf-8') as f:
+        # 每处理一个样本就保存一次结果
+        with open('predictions_CoT_deepseek.json', 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=4)
+        
+        print(f"Results saved to predictions_CoT_deepseek.json")
     
+
     # 计算总运行时间
     total_time = time.time() - start_time
     end_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -134,9 +166,8 @@ def main():
     print(f"\nProcessing completed!")
     print(f"Start time: {start_datetime}")
     print(f"End time: {end_datetime}")
-    print(f"Total running time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
-    print(f"Average processing time per sample: {total_time/total_samples:.2f} seconds")
-    print("Results saved to predictions.json")
+    print(f"Total running time: {total_time:.2f} seconds")
+    print(f"Processed samples from 1 to {len(samples_list)}")
 
 
 if __name__ == "__main__":

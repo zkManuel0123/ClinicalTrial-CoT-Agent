@@ -104,38 +104,7 @@ def F1_Recall_Precision(predictions, gold):
     Precision = precision_score(gold_labels, pred_labels)  
     return F1, Recall, Precision
 
-# def F1_Recall_Precision(predictions, gold):
-#     pred_labels = []
-#     gold_labels = []
-    
-#     # 添加计数器来追踪每种标签的数量
-#     pred_counts = {"Contradiction": 0, "Entailment": 0}
-#     gold_counts = {"Contradiction": 0, "Entailment": 0}
-    
-#     for key in predictions.keys():
-#         # 统计预测标签的分布
-#         pred_label = predictions[key]["Prediction"]
-#         pred_counts[pred_label] = pred_counts.get(pred_label, 0) + 1
-        
-#         # 统计真实标签的分布
-#         gold_label = gold[key]["Label"]
-#         gold_counts[gold_label] = gold_counts.get(gold_label, 0) + 1
-        
-#         # 转换为二值标签
-#         pred_labels.append(1 if pred_label == "Entailment" else 0)
-#         gold_labels.append(1 if gold_label == "Entailment" else 0)
-    
-#     # 打印标签分布
-#     print(f"预测标签分布: {pred_counts}")
-#     print(f"真实标签分布: {gold_counts}")
-    
-#     # 检查是否有足够的不同类别
-#     if len(set(pred_labels)) < 2 or len(set(gold_labels)) < 2:
-#         print(f"警告: 数据分布不均衡 - 预测类别数: {len(set(pred_labels))}, 真实类别数: {len(set(gold_labels))}")
-#         # 返回 -1 而不是 0，表示这是一个无效的计算场景
-#         return -1, -1, -1
-        
-#     return f1_score(gold_labels, pred_labels), precision_score(gold_labels, pred_labels), recall_score(gold_labels, pred_labels)
+
 
 
 def main():
@@ -156,7 +125,7 @@ def main():
         os.makedirs(output_dir)
 
     gold_filename = os.path.join(gold_dir, 'gold_test.json')
-    pred_filename = os.path.join(pred_dir, 'predictions.json')
+    pred_filename = os.path.join(pred_dir, 'prediction.json')
 
     with open(pred_filename) as json_file:
         predictions = json.load(json_file)

@@ -8,14 +8,15 @@ from datetime import datetime
 from typing import Dict, Any, TypedDict, Optional
 from langgraph.graph import Graph, StateGraph
 from huggingface_hub import InferenceClient
+from groq import Groq
 
 # 加载环境变量
 load_dotenv()
 
 
-client = InferenceClient(
+client = Groq(
 	
-	api_key=os.getenv("HUGGINGFACE_API_KEY")  
+	api_key=os.getenv("groq_api_key_3")  
 )
 
 def read_json_file(file_path):
@@ -121,7 +122,7 @@ def get_model_prediction(prompt, is_verification=False):
     try:
         messages = [{"role": "user", "content": prompt}]
         response = client.chat.completions.create(
-            model="meta-llama/Llama-3.3-70B-Instruct",  
+            model="llama-3.3-70b-versatile",  
             messages=messages,
             temperature=0
         )
@@ -183,14 +184,21 @@ def main():
     # Read test file
     test_file = r"\test.json"
     test_data = read_json_file(test_file)
+    
+    
+    existing_results = {}
+    start_index = 0  
+    results_file = '\predictions_DualAgent_CoT_llama3.3_groq.json'  
+    
+    # 处理所有样本
     total_samples = len(test_data)
     
     # Create workflow
     workflow = create_workflow()
     results = {}
     
-    # Process all samples
-    for idx, (sample_id, sample_data) in enumerate(test_data.items(), 1):
+    # Process samples starting from index 4636
+    for idx, (sample_id, sample_data) in enumerate(list(test_data.items())[start_index:], start_index):
         sample_start_time = time.time()
         print(f"\nProcessing sample {idx}/{total_samples}: {sample_id}")
         
@@ -211,16 +219,11 @@ def main():
             "Verification": final_state["final_verification"]
         }
         
-        # Calculate and display processing time for each sample
-        sample_time = time.time() - sample_start_time
-        print(f"Prediction Result: {final_state['final_prediction']}")
-        print(f"Sample Processing Time: {sample_time:.2f} seconds")
-        
-        # Save results in real-time
-        with open('predictions_DualAgent_CoT_llama3.3.json', 'w', encoding='utf-8') as f:
+        # 保存结果到新文件
+        with open(results_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=4, ensure_ascii=False)
             
-        # Display progress
+        # 显示进度
         if idx % 10 == 0:
             print(f"\nCompleted: {idx}/{total_samples} samples")
             current_time = time.time()
@@ -238,7 +241,7 @@ def main():
     print(f"End Time: {end_datetime}")
     print(f"Total Runtime: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
     print(f"Average Processing Time per Sample: {total_time/total_samples:.2f} seconds")
-    print(f"Results saved to predictions_DualAgent_CoT_llama3.3.json")
+    print(f"Results saved to {results_file}")
 
 if __name__ == "__main__":
     main()

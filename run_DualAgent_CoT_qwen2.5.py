@@ -8,14 +8,15 @@ from datetime import datetime
 from typing import Dict, Any, TypedDict, Optional
 from langgraph.graph import Graph, StateGraph
 from huggingface_hub import InferenceClient
+from openai import OpenAI
 
 # 加载环境变量
 load_dotenv()
 
 
-client = InferenceClient(
-	
-	api_key=os.getenv("HUGGINGFACE_API_KEY")  
+client = OpenAI(
+    api_key=os.getenv("DASHSCOPE_API_KEY"),
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
 )
 
 def read_json_file(file_path):
@@ -121,7 +122,7 @@ def get_model_prediction(prompt, is_verification=False):
     try:
         messages = [{"role": "user", "content": prompt}]
         response = client.chat.completions.create(
-            model="meta-llama/Llama-3.3-70B-Instruct",  
+            model="qwen2.5-72b-instruct",  
             messages=messages,
             temperature=0
         )
@@ -183,16 +184,21 @@ def main():
     # Read test file
     test_file = r"\test.json"
     test_data = read_json_file(test_file)
-    total_samples = len(test_data)
+    
+    # 设置起始样本索引
+    start_sample = 5311
+    # 将字典转换为列表以便切片
+    items = list(test_data.items())[start_sample-1:]
+    total_samples = len(items)
     
     # Create workflow
     workflow = create_workflow()
     results = {}
     
-    # Process all samples
-    for idx, (sample_id, sample_data) in enumerate(test_data.items(), 1):
+    # Process samples starting from start_sample
+    for idx, (sample_id, sample_data) in enumerate(items, 1):
         sample_start_time = time.time()
-        print(f"\nProcessing sample {idx}/{total_samples}: {sample_id}")
+        print(f"\nProcessing sample {start_sample + idx - 1}/{len(test_data)}: {sample_id}")
         
         # Initialize state
         state = {
@@ -216,8 +222,8 @@ def main():
         print(f"Prediction Result: {final_state['final_prediction']}")
         print(f"Sample Processing Time: {sample_time:.2f} seconds")
         
-        # Save results in real-time
-        with open('predictions_DualAgent_CoT_llama3.3.json', 'w', encoding='utf-8') as f:
+        # Save results in real-time with new filename
+        with open('\predictions_DualAgent_CoT_qwen2.5.json', 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=4, ensure_ascii=False)
             
         # Display progress
@@ -238,7 +244,7 @@ def main():
     print(f"End Time: {end_datetime}")
     print(f"Total Runtime: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
     print(f"Average Processing Time per Sample: {total_time/total_samples:.2f} seconds")
-    print(f"Results saved to predictions_DualAgent_CoT_llama3.3.json")
+    print(f"Results saved to predictions_DualAgent_CoT_qwen2.5.json")
 
 if __name__ == "__main__":
     main()

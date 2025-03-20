@@ -8,14 +8,14 @@ from datetime import datetime
 from typing import Dict, Any, TypedDict, Optional
 from langgraph.graph import Graph, StateGraph
 from huggingface_hub import InferenceClient
+from groq import Groq
 
 # 加载环境变量
 load_dotenv()
 
-
-client = InferenceClient(
-	
-	api_key=os.getenv("HUGGINGFACE_API_KEY")  
+# 初始化Groq客户端
+client = Groq(
+    api_key=os.getenv("groq_api_key_3")
 )
 
 def read_json_file(file_path):
@@ -101,15 +101,16 @@ def final_extractor(state: Dict[str, Any]) -> Dict[str, Any]:
     verification_content = state["final_verification"]
     
     try:
-        import re
-        # first find Final Judgment 
-        pattern = r"Final Judgment:.*?(Contradiction|Entailment)"
-        match = re.search(pattern, verification_content, re.DOTALL)
+        # 将内容按行分割并过滤空行
+        lines = [line.strip() for line in verification_content.split('\n') if line.strip()]
+        # 获取最后一行文本
+        last_line = lines[-1]
         
-        if match:
-            # extract Contradiction  or Entailment
-            result = match.group(1)
-            state["final_prediction"] = result
+        # 在最后一行中查找关键词
+        if "Entailment" in last_line:
+            state["final_prediction"] = "Entailment"
+        elif "Contradiction" in last_line:
+            state["final_prediction"] = "Contradiction"
         else:
             state["final_prediction"] = "NAN"
     except:
@@ -121,7 +122,7 @@ def get_model_prediction(prompt, is_verification=False):
     try:
         messages = [{"role": "user", "content": prompt}]
         response = client.chat.completions.create(
-            model="meta-llama/Llama-3.3-70B-Instruct",  
+            model="deepseek-r1-distill-llama-70b", 
             messages=messages,
             temperature=0
         )
@@ -181,16 +182,19 @@ def main():
     print(f"Processing Start Time: {start_datetime}")
 
     # Read test file
-    test_file = r"\test.json"
+    test_file = r"test.json"
     test_data = read_json_file(test_file)
-    total_samples = len(test_data)
+    
+    # 直接使用完整的测试数据
+    items = list(test_data.items())
+    total_samples = len(items)
     
     # Create workflow
     workflow = create_workflow()
     results = {}
     
     # Process all samples
-    for idx, (sample_id, sample_data) in enumerate(test_data.items(), 1):
+    for idx, (sample_id, sample_data) in enumerate(items, 1):
         sample_start_time = time.time()
         print(f"\nProcessing sample {idx}/{total_samples}: {sample_id}")
         
@@ -217,7 +221,7 @@ def main():
         print(f"Sample Processing Time: {sample_time:.2f} seconds")
         
         # Save results in real-time
-        with open('predictions_DualAgent_CoT_llama3.3.json', 'w', encoding='utf-8') as f:
+        with open('predictions_DualAgent_CoT_deepseek.json', 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=4, ensure_ascii=False)
             
         # Display progress
@@ -238,7 +242,7 @@ def main():
     print(f"End Time: {end_datetime}")
     print(f"Total Runtime: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
     print(f"Average Processing Time per Sample: {total_time/total_samples:.2f} seconds")
-    print(f"Results saved to predictions_DualAgent_CoT_llama3.3.json")
+    print(f"Results saved to predictions_DualAgent_CoT_deepseek.json")
 
 if __name__ == "__main__":
     main()
